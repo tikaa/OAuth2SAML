@@ -55,8 +55,8 @@ public class GenerateSAMLToken {
                 CacheEntry resultValue = isEntryInCache(token);
                 // cache hit, do the type check.
                 if (resultValue instanceof SAMLAssertion) {
-                    cacheHit = true;
                     sAMLResponse = ((SAMLAssertion) resultValue).getSamlAssertion();
+                    cacheHit = true;
                 }
             }
             if (!cacheHit) { //if the response was not in cache || if cache is not enabled
