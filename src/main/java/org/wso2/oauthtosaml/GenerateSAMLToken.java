@@ -45,7 +45,7 @@ public class GenerateSAMLToken {
      *
      * @throws AuthenticationFailedException
      */
-    protected GeneratedResponseDTO getSAMLAssertionfromOAuth(String token, String issuer)
+    protected GeneratedResponseDTO getSAMLAssertionFromOAuth(String token, String issuer)
             throws AuthenticationFailedException {
 
         boolean cacheHit = false;
@@ -89,7 +89,7 @@ public class GenerateSAMLToken {
                     samlAssertion.setSamlAssertion(sAMLResponse);
                     saveToCache(token, samlAssertion);
                     if (log.isDebugEnabled()) {
-                        log.debug("SAML Token encoded String was added to the cache.");
+                        log.debug("SAML Token was added to cache.");
                     }
                 }
             }

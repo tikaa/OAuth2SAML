@@ -43,7 +43,7 @@ public class SAMLFromAOuthToken {
 
         if (acceptEncoding == null) {
             try {
-                sAMLOutPUT = generateSaml.getSAMLAssertionfromOAuth(token, issuer);
+                sAMLOutPUT = generateSaml.getSAMLAssertionFromOAuth(token, issuer);
                 sAMLOutputString = sAMLOutPUT.getXmlResponse();
                 return Response.status(200).entity(sAMLOutputString).build();
             } catch (AuthenticationFailedException e) {
@@ -51,7 +51,7 @@ public class SAMLFromAOuthToken {
             }
         } else if (acceptEncoding.contains(BASE64))  {
             try {
-                sAMLOutPUT = generateSaml.getSAMLAssertionfromOAuth(token, issuer);
+                sAMLOutPUT = generateSaml.getSAMLAssertionFromOAuth(token, issuer);
                 sAMLOutputString = sAMLOutPUT.getEncodedResponse();
                 return Response.status(200).entity(sAMLOutputString).build();
             } catch (AuthenticationFailedException e) {
