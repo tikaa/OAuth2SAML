@@ -58,7 +58,7 @@ public class SAMLFromAOuthToken {
                 return Response.status(401).entity("Authentication failed for the given oauth token" + e).build();
             }
         } else {
-            return Response.status(400).entity("The Encoding type you requested is currently not supported").build();
+            return Response.status(406).entity("The Encoding type you requested is currently not supported").build();
         }
 
     }
