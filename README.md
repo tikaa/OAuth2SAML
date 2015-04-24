@@ -32,4 +32,7 @@ curl -vk -X POST https://localhost:9443/oauth2saml/token -d 'token=${OAuthToken}
 
 
 
-LICENSE - Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) Licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
+LICENSE 
+-------
+
+Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) Licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
