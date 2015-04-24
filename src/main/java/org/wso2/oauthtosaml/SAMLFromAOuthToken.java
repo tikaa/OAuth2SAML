@@ -36,7 +36,8 @@ public class SAMLFromAOuthToken {
     @Consumes("application/x-www-form-urlencoded")
     @Produces(MediaType.TEXT_PLAIN)
     public Response responseMsgPlainText(@FormParam(TOKEN) String token,
-                                         @FormParam(ISSUER) String issuer,@FormParam(ENCODING) String acceptEncoding) {
+                                         @FormParam(ISSUER) String issuer,
+                                         @FormParam(ENCODING) String acceptEncoding) {
         //parameter 1 : OAuth Token , parameter 2 : issuer
         GenerateSAMLToken generateSaml = new GenerateSAMLToken();
         GeneratedResponseDTO sAMLOutPUT = null;
@@ -50,7 +51,7 @@ public class SAMLFromAOuthToken {
             } catch (AuthenticationFailedException e) {
                 return Response.status(401).entity("Authentication failed for the given oauth token" + e).build();
             }
-        } else if (acceptEncoding.contains(BASE64))  {
+        } else if (acceptEncoding.contains(BASE64)) {
             try {
                 sAMLOutPUT = generateSaml.getSAMLAssertionFromOAuth(token, issuer);
                 sAMLOutputString = sAMLOutPUT.getEncodedResponse();
