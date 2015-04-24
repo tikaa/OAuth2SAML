@@ -25,7 +25,7 @@ Sample curl command to invoke the service
 -----------------------------------------
 
 for encoded SAML 
-curl -vk -X POST https://localhost:9443/oauth2saml/token --header "Accept-Encoding:base64" -d 'token=${OAuthToken}&issuer=${Issuer}'
+curl -vk -X POST https://localhost:9443/oauth2saml/token -d 'token=${OAuthToken}&issuer=${Issuer}&encoded=base64'
 
 for plain xml SAML
 curl -vk -X POST https://localhost:9443/oauth2saml/token -d 'token=${OAuthToken}&issuer=${Issuer}'
