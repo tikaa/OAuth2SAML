@@ -29,13 +29,14 @@ public class SAMLFromAOuthToken {
     public static final String TOKEN = "token";
     public static final String ISSUER = "issuer";
     public static final String BASE64 = "base64";
+    public static final String ENCODING = "encoding";
 
     @POST
     @Path("/token")
     @Consumes("application/x-www-form-urlencoded")
     @Produces(MediaType.TEXT_PLAIN)
     public Response responseMsgPlainText(@FormParam(TOKEN) String token,
-                                         @FormParam(ISSUER) String issuer,@HeaderParam("Accept-Encoding") String acceptEncoding) {
+                                         @FormParam(ISSUER) String issuer,@FormParam(ENCODING) String acceptEncoding) {
         //parameter 1 : OAuth Token , parameter 2 : issuer
         GenerateSAMLToken generateSaml = new GenerateSAMLToken();
         GeneratedResponseDTO sAMLOutPUT = null;
