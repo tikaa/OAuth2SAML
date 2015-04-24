@@ -51,7 +51,7 @@ public class SAMLFromAOuthToken {
             } catch (AuthenticationFailedException e) {
                 return Response.status(401).entity("Authentication failed for the given oauth token" + e).build();
             }
-        } else if (acceptEncoding.contains(BASE64)) {
+        } else if (acceptEncoding.equals(BASE64)) {
             try {
                 sAMLOutPUT = generateSaml.getSAMLAssertionFromOAuth(token, issuer);
                 sAMLOutputString = sAMLOutPUT.getEncodedResponse();
