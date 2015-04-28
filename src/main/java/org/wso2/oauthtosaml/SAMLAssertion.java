@@ -17,17 +17,16 @@
 package org.wso2.oauthtosaml;
 
 import org.wso2.carbon.identity.oauth.cache.CacheEntry;
-import org.wso2.carbon.identity.tools.saml.validator.dto.GeneratedResponseDTO;
 
 public class SAMLAssertion extends CacheEntry {
 
-    GeneratedResponseDTO samlAssertion;
+    String samlAssertion;
 
-    public GeneratedResponseDTO getSamlAssertion() {
+    public String getSamlAssertion() {
         return samlAssertion;
     }
 
-    public void setSamlAssertion(GeneratedResponseDTO samlAssertion) {
+    public void setSamlAssertion(String samlAssertion) {
         this.samlAssertion = samlAssertion;
     }
 }

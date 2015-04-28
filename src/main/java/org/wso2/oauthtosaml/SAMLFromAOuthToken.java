@@ -16,8 +16,12 @@
 
 package org.wso2.oauthtosaml;
 
+import org.wso2.carbon.CarbonException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
-import org.wso2.carbon.identity.tools.saml.validator.dto.GeneratedResponseDTO;
+import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
+import org.wso2.carbon.identity.base.IdentityException;
+import org.wso2.carbon.identity.sso.saml.util.SAMLSSOUtil;
+import org.wso2.carbon.user.api.UserStoreException;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -38,29 +42,43 @@ public class SAMLFromAOuthToken {
     public Response responseMsgPlainText(@FormParam(TOKEN) String token,
                                          @FormParam(ISSUER) String issuer,
                                          @FormParam(ENCODING) String acceptEncoding) {
-        //parameter 1 : OAuth Token , parameter 2 : issuer
         GenerateSAMLToken generateSaml = new GenerateSAMLToken();
-        GeneratedResponseDTO sAMLOutPUT = null;
+
         String sAMLOutputString = null;
 
         if (acceptEncoding == null) {
             try {
-                sAMLOutPUT = generateSaml.getSAMLAssertionFromOAuth(token, issuer);
-                sAMLOutputString = sAMLOutPUT.getXmlResponse();
+                sAMLOutputString = generateSaml.getSAMLAssertionFromOAuth(token, issuer);
                 return Response.status(200).entity(sAMLOutputString).build();
             } catch (AuthenticationFailedException e) {
-                return Response.status(401).entity("Authentication failed for the given oauth token" + e).build();
+                return Response.status(401).entity("Authentication failed for the given oauth token" + "\n" + e + "\n").build();
+            } catch (CarbonException e) {
+                return Response.status(500).entity("Carbon Server Error has occurred, please refer carbon logs for more details" + "\n" + e + "\n").build();
+            } catch (IdentityException e) {
+                return Response.status(500).entity("Identity Server Error has occurred, please refer carbon logs for more details" + "\n" + e + "\n").build();
+            } catch (UserStoreException e) {
+                return Response.status(500).entity("UserStore Error has occurred, please refer carbon logs for more details" + "\n" + e + "\n").build();
+            } catch (IdentityApplicationManagementException e) {
+                return Response.status(500).entity("Identity Server Error has occurred, please refer carbon logs for more details" + "\n" + e + "\n").build();
             }
         } else if (acceptEncoding.equals(BASE64)) {
             try {
-                sAMLOutPUT = generateSaml.getSAMLAssertionFromOAuth(token, issuer);
-                sAMLOutputString = sAMLOutPUT.getEncodedResponse();
+                SAMLSSOUtil samlssoUtil = new SAMLSSOUtil();
+                sAMLOutputString = samlssoUtil.encode(generateSaml.getSAMLAssertionFromOAuth(token, issuer));
                 return Response.status(200).entity(sAMLOutputString).build();
             } catch (AuthenticationFailedException e) {
-                return Response.status(401).entity("Authentication failed for the given oauth token" + e).build();
+                return Response.status(401).entity("Authentication failed for the given oauth token" + "\n" + e + "\n").build();
+            } catch (CarbonException e) {
+                return Response.status(500).entity("Carbon Server Error has occurred, please refer carbon logs for more details" + "\n" + e + "\n").build();
+            } catch (IdentityException e) {
+                return Response.status(500).entity("Identity Server Error has occurred, please refer carbon logs for more details" + "\n" + e + "\n").build();
+            } catch (UserStoreException e) {
+                return Response.status(500).entity("UserStore Error has occurred, please refer carbon logs for more details" + "\n" + e + "\n").build();
+            } catch (IdentityApplicationManagementException e) {
+                return Response.status(500).entity("Identity Server Error has occurred, please refer carbon logs for more details" + "\n" + e + "\n").build();
             }
         } else {
-            return Response.status(406).entity("The Encoding type you requested is currently not supported").build();
+            return Response.status(406).entity("The Encoding type you requested is currently not supported" + "\n").build();
         }
 
     }
