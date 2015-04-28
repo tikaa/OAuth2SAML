@@ -68,7 +68,6 @@ public class GenerateSAMLToken {
 
 	public static final String BEARER = "bearer";
 	public static final String SAMLSSO = "samlsso";
-	public static final String CARBON_SUPER = "carbon.super";//since no tenants are used
 
 	private static Log log = LogFactory.getLog(GenerateSAMLToken.class);
 
@@ -348,12 +347,12 @@ public class GenerateSAMLToken {
 			throws IdentityException, CarbonException, UserStoreException,
 			       IdentityApplicationManagementException {//exceptions are thrown in this currently
 		Map<String, String> spClaimMap = null;
-		int index = 0;
-
+		MultitenantUtils multitenantUtils = new MultitenantUtils();
+		String tenantDomain = multitenantUtils.getTenantDomain(username);
 		ApplicationInfoProvider appInfo = ApplicationInfoProvider.getInstance();
 		try {
 			ServiceProvider serviceProvider =
-					appInfo.getServiceProviderByClienId(issuer, SAMLSSO, CARBON_SUPER);
+					appInfo.getServiceProviderByClienId(issuer, SAMLSSO, tenantDomain);
 			org.wso2.carbon.identity.application.common.model.ClaimMapping[] claimMappings =
 					new org.wso2.carbon.identity.application.common.model.ClaimMapping[serviceProvider
 							.getClaimConfig().getClaimMappings().length];
