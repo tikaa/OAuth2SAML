@@ -20,13 +20,13 @@ import org.wso2.carbon.identity.oauth.cache.CacheEntry;
 
 public class SAMLAssertion extends CacheEntry {
 
-    String samlAssertion;
+	String samlAssertion;
 
-    public String getSamlAssertion() {
-        return samlAssertion;
-    }
+	public String getSamlAssertion() {
+		return samlAssertion;
+	}
 
-    public void setSamlAssertion(String samlAssertion) {
-        this.samlAssertion = samlAssertion;
-    }
+	public void setSamlAssertion(String samlAssertion) {
+		this.samlAssertion = samlAssertion;
+	}
 }
