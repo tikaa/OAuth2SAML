@@ -276,7 +276,7 @@ public class GenerateSAMLToken {
 			if (ssoIdPConfigs.isUseFullyQualifiedUsername()) {
 				nameId.setValue(userName);
 			} else {
-				nameId.setValue(MultitenantUtils.getTenantAwareUsername(userName));
+				nameId.setValue(userName);
 			}
 		}
 
