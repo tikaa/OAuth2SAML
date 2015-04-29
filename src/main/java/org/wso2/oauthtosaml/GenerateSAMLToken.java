@@ -92,30 +92,24 @@ public class GenerateSAMLToken {
 				}
 			}
 			if (!cacheHit) { //if the response was not in cache || if cache is not enabled
-				OAuth2TokenValidationService validationService = new OAuth2TokenValidationService();
-				OAuth2TokenValidationRequestDTO validationReqDTO =
-						new OAuth2TokenValidationRequestDTO();
-				OAuth2AccessToken accessToken = validationReqDTO.new OAuth2AccessToken();
-				accessToken.setIdentifier(token);
-				accessToken.setTokenType(BEARER);
-				validationReqDTO.setAccessToken(accessToken);
+				//validating the OAuth token received
 				OAuth2TokenValidationResponseDTO validationResponse =
-						validationService.validate(validationReqDTO);
+						getValidationResultForOAuth(token);
 
 				if (!validationResponse.isValid()) {//validate the OAuth token
 					log.error("RequestPath OAuth authentication failed");
 					throw new AuthenticationFailedException("Authentication Failed");
 				}
 
-				String user = validationResponse
-						.getAuthorizedUser();// retrieving user from the validation response for OAuth Token..
+				// retrieving user and tenant domain from the validation response for OAuth Token..
+				String user = validationResponse.getAuthorizedUser();
 				String tenantDomain = MultitenantUtils.getTenantDomain(user);
 
 				if (MultitenantConstants.SUPER_TENANT_DOMAIN_NAME.equals(tenantDomain)) {
 					user = MultitenantUtils.getTenantAwareUsername(user);
 				}
 
-				Response samlResponseSample = buildSAMLResponse(issuer, user);
+				Response samlResponseSample = buildSAMLResponse(issuer, user, tenantDomain);
 				sAMLXMLResponse = SAMLSSOUtil.marshall(samlResponseSample);
 
 				if (OAuthServerConfiguration.getInstance().isCacheEnabled()) {//saving for cache
@@ -145,6 +139,22 @@ public class GenerateSAMLToken {
 	}
 
 	/**
+	 * validates the OAuth token received,
+	 * @param token
+	 * @return validation result for the OAuth toekn
+	 */
+	private OAuth2TokenValidationResponseDTO getValidationResultForOAuth(String token) {
+		OAuth2TokenValidationService validationService = new OAuth2TokenValidationService();
+		OAuth2TokenValidationRequestDTO validationReqDTO =
+				new OAuth2TokenValidationRequestDTO();
+		OAuth2AccessToken accessToken = validationReqDTO.new OAuth2AccessToken();
+		accessToken.setIdentifier(token);
+		accessToken.setTokenType(BEARER);
+		validationReqDTO.setAccessToken(accessToken);
+		return validationService.validate(validationReqDTO);
+	}
+
+	/**
 	 * Saving the entries to cache
 	 *
 	 * @param tokenKey
@@ -170,7 +180,7 @@ public class GenerateSAMLToken {
 
 	}
 
-	private Response buildSAMLResponse(String issuer, String userName)
+	private Response buildSAMLResponse(String issuer, String userName, String tenantDoamin)
 			throws IdentityException, CarbonException, UserStoreException,
 			       IdentityApplicationManagementException {
 
@@ -201,9 +211,8 @@ public class GenerateSAMLToken {
 						             1000);
 				response.setIssueInstant(issueInstant);
 				Assertion assertion = null;
-				assertion = buildSAMLAssertion(ssoIdPConfigs, notOnOrAfter, userName, issuer);
+				assertion = buildSAMLAssertion(ssoIdPConfigs, notOnOrAfter, userName, issuer, tenantDoamin);
 				if (ssoIdPConfigs.isDoEnableEncryptedAssertion()) {
-					String domainName = MultitenantUtils.getTenantDomain(userName);
 					String alias = ssoIdPConfigs.getCertAlias();
 					if (alias != null) {
 						EncryptedAssertion encryptedAssertion =
@@ -211,7 +220,7 @@ public class GenerateSAMLToken {
 						encryptedAssertion = SAMLSSOUtil.setEncryptedAssertion(assertion,
 						                                                       EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES256,
 						                                                       alias,
-						                                                       domainName);
+						                                                       tenantDoamin);
 						response.getEncryptedAssertions().add(encryptedAssertion);
 					}
 				} else {
@@ -240,7 +249,7 @@ public class GenerateSAMLToken {
 	}
 
 	private Assertion buildSAMLAssertion(SAMLSSOServiceProviderDO ssoIdPConfigs,
-	                                     DateTime notOnOrAfter, String userName, String issuer)
+	                                     DateTime notOnOrAfter, String userName, String issuer, String tenantDoamin)
 			throws IdentityException, UserStoreException, CarbonException,
 			       IdentityApplicationManagementException {
 		DateTime currentTime = new DateTime();
@@ -301,7 +310,7 @@ public class GenerateSAMLToken {
 		authStmt.setAuthnContext(authContext);
 		samlAssertion.getAuthnStatements().add(authStmt);
 
-		Map<String, String> sPClaims = getSPClaims(userName, issuer);
+		Map<String, String> sPClaims = getSPClaims(userName, issuer, tenantDoamin);
 		if (sPClaims != null) {
 			samlAssertion.getAttributeStatements().add(buildAttributeStatement(sPClaims));
 		}
@@ -343,12 +352,10 @@ public class GenerateSAMLToken {
 	 * @throws UserStoreException
 	 * @throws IdentityApplicationManagementException
 	 */
-	private Map<String, String> getSPClaims(String username, String issuer)
+	private Map<String, String> getSPClaims(String username, String issuer, String tenantDomain)
 			throws IdentityException, CarbonException, UserStoreException,
 			       IdentityApplicationManagementException {//exceptions are thrown in this currently
 		Map<String, String> spClaimMap = null;
-		MultitenantUtils multitenantUtils = new MultitenantUtils();
-		String tenantDomain = multitenantUtils.getTenantDomain(username);
 		ApplicationInfoProvider appInfo = ApplicationInfoProvider.getInstance();
 		try {
 			ServiceProvider serviceProvider =
