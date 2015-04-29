@@ -140,7 +140,7 @@ public class GenerateSAMLToken {
 
 	/**
 	 * validates the OAuth token received,
-	 * @param token
+	 * @param token Oauth token
 	 * @return validation result for the OAuth toekn
 	 */
 	private OAuth2TokenValidationResponseDTO getValidationResultForOAuth(String token) {
@@ -157,8 +157,8 @@ public class GenerateSAMLToken {
 	/**
 	 * Saving the entries to cache
 	 *
-	 * @param tokenKey
-	 * @param samlAssertion
+	 * @param tokenKey Oauth token
+	 * @param samlAssertion assertion object that contains the SAML Response XML
 	 */
 	private void saveToCache(String tokenKey, SAMLAssertion samlAssertion) {
 		OAuthCache oauthCache = OAuthCache.getInstance();
@@ -169,14 +169,13 @@ public class GenerateSAMLToken {
 	/**
 	 * Iterating cache to see if entry is available in cache
 	 *
-	 * @param tokenKey
+	 * @param tokenKey Oauth token
 	 * @return resulting SAML assertion object
 	 */
 	private CacheEntry isEntryInCache(String tokenKey) {
 		OAuthCache oauthCache = OAuthCache.getInstance();
 		CacheKey cacheKey = new OAuthCacheKey(tokenKey);
-		CacheEntry result = oauthCache.getValueFromCache(cacheKey);
-		return result;
+		return oauthCache.getValueFromCache(cacheKey);
 
 	}
 
@@ -190,8 +189,7 @@ public class GenerateSAMLToken {
 		Response response = new org.opensaml.saml2.core.impl.ResponseBuilder().buildObject();
 
 		if (ssoIdPConfigs == null) {
-			IdentityPersistenceManager persistenceManager =
-					null;
+			IdentityPersistenceManager persistenceManager;
 			try {
 				persistenceManager = IdentityPersistenceManager.getPersistanceManager();
 				Registry registry = (Registry) PrivilegedCarbonContext.getThreadLocalCarbonContext()
@@ -210,13 +208,12 @@ public class GenerateSAMLToken {
 						             SAMLSSOUtil.getSAMLResponseValidityPeriod() * 60 *
 						             1000);
 				response.setIssueInstant(issueInstant);
-				Assertion assertion = null;
+				Assertion assertion;
 				assertion = buildSAMLAssertion(ssoIdPConfigs, notOnOrAfter, userName, issuer, tenantDoamin);
 				if (ssoIdPConfigs.isDoEnableEncryptedAssertion()) {
 					String alias = ssoIdPConfigs.getCertAlias();
 					if (alias != null) {
-						EncryptedAssertion encryptedAssertion =
-								null;
+						EncryptedAssertion encryptedAssertion;
 						encryptedAssertion = SAMLSSOUtil.setEncryptedAssertion(assertion,
 						                                                       EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES256,
 						                                                       alias,
@@ -344,9 +341,9 @@ public class GenerateSAMLToken {
 	/**
 	 * Retreiving the service providers claims from the back-end
 	 *
-	 * @param username
-	 * @param issuer
-	 * @return
+	 * @param username username of the toekn
+	 * @param issuer issuer for the SAML
+	 * @return map of claims URI s and matching claim values
 	 * @throws IdentityException
 	 * @throws CarbonException
 	 * @throws UserStoreException
@@ -355,7 +352,7 @@ public class GenerateSAMLToken {
 	private Map<String, String> getSPClaims(String username, String issuer, String tenantDomain)
 			throws IdentityException, CarbonException, UserStoreException,
 			       IdentityApplicationManagementException {//exceptions are thrown in this currently
-		Map<String, String> spClaimMap = null;
+		Map<String, String> spClaimMap;
 		org.wso2.carbon.identity.application.common.model.ClaimMapping[] claimMappings;
 		ApplicationInfoProvider appInfo = ApplicationInfoProvider.getInstance();
 		try {
@@ -367,7 +364,7 @@ public class GenerateSAMLToken {
 			for (int i = 0; i < claimMappings.length; i++) {
 				claims[i] = claimMappings[i].getLocalClaim().getClaimUri();
 			}
-			UserRealm realm = null;
+			UserRealm realm;
 			try {
 				realm = getUserRealm();
 				UserStoreManager userStore = realm.getUserStoreManager();
@@ -418,8 +415,8 @@ public class GenerateSAMLToken {
 	/**
 	 * Get status
 	 *
-	 * @param status
-	 * @param statMsg
+	 * @param status opensaml status
+	 * @param statMsg message for the particular status
 	 * @return Status object
 	 */
 	private Status buildStatus(String status, String statMsg) {

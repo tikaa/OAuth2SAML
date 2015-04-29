@@ -44,7 +44,7 @@ public class SAMLFromAOuthToken {
 	                                     @FormParam(ENCODING) String acceptEncoding) {
 		GenerateSAMLToken generateSaml = new GenerateSAMLToken();
 
-		String sAMLOutputString = null;
+		String sAMLOutputString;
 
 		if (acceptEncoding == null) {
 			try {
@@ -73,9 +73,8 @@ public class SAMLFromAOuthToken {
 			}
 		} else if (acceptEncoding.equals(BASE64)) {
 			try {
-				SAMLSSOUtil samlssoUtil = new SAMLSSOUtil();
 				sAMLOutputString =
-						samlssoUtil.encode(generateSaml.getSAMLAssertionFromOAuth(token, issuer));
+						SAMLSSOUtil.encode(generateSaml.getSAMLAssertionFromOAuth(token, issuer));
 				return Response.status(200).entity(sAMLOutputString).build();
 			} catch (AuthenticationFailedException e) {
 				return Response.status(401)
