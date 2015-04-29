@@ -356,13 +356,11 @@ public class GenerateSAMLToken {
 			throws IdentityException, CarbonException, UserStoreException,
 			       IdentityApplicationManagementException {//exceptions are thrown in this currently
 		Map<String, String> spClaimMap = null;
+		org.wso2.carbon.identity.application.common.model.ClaimMapping[] claimMappings;
 		ApplicationInfoProvider appInfo = ApplicationInfoProvider.getInstance();
 		try {
 			ServiceProvider serviceProvider =
 					appInfo.getServiceProviderByClienId(issuer, SAMLSSO, tenantDomain);
-			org.wso2.carbon.identity.application.common.model.ClaimMapping[] claimMappings =
-					new org.wso2.carbon.identity.application.common.model.ClaimMapping[serviceProvider
-							.getClaimConfig().getClaimMappings().length];
 			String[] claims =
 					new String[serviceProvider.getClaimConfig().getClaimMappings().length];
 			claimMappings = serviceProvider.getClaimConfig().getClaimMappings();
