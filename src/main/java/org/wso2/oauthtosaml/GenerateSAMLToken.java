@@ -141,7 +141,7 @@ public class GenerateSAMLToken {
 	/**
 	 * validates the OAuth token received,
 	 * @param token Oauth token
-	 * @return validation result for the OAuth toekn
+	 * @return validation result for the OAuth token
 	 */
 	private OAuth2TokenValidationResponseDTO getValidationResultForOAuth(String token) {
 		OAuth2TokenValidationService validationService = new OAuth2TokenValidationService();
@@ -341,7 +341,7 @@ public class GenerateSAMLToken {
 	/**
 	 * Retreiving the service providers claims from the back-end
 	 *
-	 * @param username username of the toekn
+	 * @param username username of the token
 	 * @param issuer issuer for the SAML
 	 * @return map of claims URI s and matching claim values
 	 * @throws IdentityException
