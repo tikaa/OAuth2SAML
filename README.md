@@ -11,11 +11,12 @@ token - Valid OAuth token for which the SAML token is required
 
 issuer - issuer for the SAML token
 
-encoding - whether the resulting SAML response needs to  be encoded, if this parameter is null, SAML is sent plain xml format, if it is set to base63, SAML will be encoded in base64
+encoding - whether the resulting SAML response needs to  be encoded, if this parameter is null, SAML is sent plain xml format, if it is set to base64, SAML will be encoded in base64
 
 
 OUTPUT
 ------
+
 
 Generated SAML token either in encoded format OR xml format depending on the request header
 
