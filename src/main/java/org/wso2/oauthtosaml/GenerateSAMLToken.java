@@ -140,6 +140,7 @@ public class GenerateSAMLToken {
 
 	/**
 	 * validates the OAuth token received,
+	 *
 	 * @param token Oauth token
 	 * @return validation result for the OAuth token
 	 */
@@ -157,7 +158,7 @@ public class GenerateSAMLToken {
 	/**
 	 * Saving the entries to cache
 	 *
-	 * @param tokenKey Oauth token
+	 * @param tokenKey      Oauth token
 	 * @param samlAssertion assertion object that contains the SAML Response XML
 	 */
 	private void saveToCache(String tokenKey, SAMLAssertion samlAssertion) {
@@ -209,7 +210,8 @@ public class GenerateSAMLToken {
 						             1000);
 				response.setIssueInstant(issueInstant);
 				Assertion assertion;
-				assertion = buildSAMLAssertion(ssoIdPConfigs, notOnOrAfter, userName, issuer, tenantDoamin);
+				assertion = buildSAMLAssertion(ssoIdPConfigs, notOnOrAfter, userName, issuer,
+				                               tenantDoamin);
 				if (ssoIdPConfigs.isDoEnableEncryptedAssertion()) {
 					String alias = ssoIdPConfigs.getCertAlias();
 					if (alias != null) {
@@ -246,7 +248,8 @@ public class GenerateSAMLToken {
 	}
 
 	private Assertion buildSAMLAssertion(SAMLSSOServiceProviderDO ssoIdPConfigs,
-	                                     DateTime notOnOrAfter, String userName, String issuer, String tenantDoamin)
+	                                     DateTime notOnOrAfter, String userName,
+	                                     String issuer, String tenantDoamin)
 			throws IdentityException, UserStoreException, CarbonException,
 			       IdentityApplicationManagementException {
 		DateTime currentTime = new DateTime();
@@ -262,9 +265,11 @@ public class GenerateSAMLToken {
 		if (ssoIdPConfigs.getNameIdClaimUri() != null) {
 			Map<String, String> claims =
 					SAMLValidatorUtil.getUserClaimValues(userName,
-					                                     new String[] { ssoIdPConfigs
-							                                                    .getNameIdClaimUri() },
-					                                     null);
+					                                     new String[] {
+							                                     ssoIdPConfigs
+									                                     .getNameIdClaimUri() },
+					                                     null
+					);
 			claimValue = claims.get(ssoIdPConfigs.getNameIdClaimUri());
 			nameId.setValue(claimValue);
 		}
@@ -342,7 +347,7 @@ public class GenerateSAMLToken {
 	 * Retreiving the service providers claims from the back-end
 	 *
 	 * @param username username of the token
-	 * @param issuer issuer for the SAML
+	 * @param issuer   issuer for the SAML
 	 * @return map of claims URI s and matching claim values
 	 * @throws IdentityException
 	 * @throws CarbonException
@@ -362,7 +367,7 @@ public class GenerateSAMLToken {
 					new String[serviceProvider.getClaimConfig().getClaimMappings().length];
 			claimMappings = serviceProvider.getClaimConfig().getClaimMappings();
 			for (int i = 0; i < claimMappings.length; i++) {
-				claims[i] = claimMappings[i].getLocalClaim().getClaimUri();
+				claims[i] = claimMappings[i].getRemoteClaim().getClaimUri();
 			}
 			UserRealm realm;
 			try {
@@ -415,7 +420,7 @@ public class GenerateSAMLToken {
 	/**
 	 * Get status
 	 *
-	 * @param status opensaml status
+	 * @param status  opensaml status
 	 * @param statMsg message for the particular status
 	 * @return Status object
 	 */
