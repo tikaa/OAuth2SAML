@@ -34,6 +34,8 @@ import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.context.RegistryType;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
+import org.wso2.carbon.identity.application.common.model.Claim;
+import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.application.common.model.ServiceProvider;
 import org.wso2.carbon.identity.application.mgt.ApplicationInfoProvider;
 import org.wso2.carbon.identity.base.IdentityException;
@@ -59,6 +61,10 @@ import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.api.UserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
+import edu.emory.mathcs.backport.java.util.Arrays;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -96,10 +102,11 @@ public class GenerateSAMLToken {
 				OAuth2TokenValidationResponseDTO validationResponse =
 						getValidationResultForOAuth(token);
 
-				if (!validationResponse.isValid()) {//validate the OAuth token
-					log.error("RequestPath OAuth authentication failed");
-					throw new AuthenticationFailedException("Authentication Failed");
-				}
+                if (!validationResponse.isValid()) {// validate the OAuth token
+                    log.error("OAuth token validation failed : " + validationResponse.getErrorMsg());
+                    throw new AuthenticationFailedException("Authentication Failed. "
+                            + validationResponse.getErrorMsg());
+                }
 
 				// retrieving user and tenant domain from the validation response for OAuth Token..
 				String user = validationResponse.getAuthorizedUser();
@@ -344,7 +351,7 @@ public class GenerateSAMLToken {
 	}
 
 	/**
-	 * Retreiving the service providers claims from the back-end
+	 * Retrieving the service providers claims from the back-end
 	 *
 	 * @param username username of the token
 	 * @param issuer   issuer for the SAML
@@ -357,34 +364,44 @@ public class GenerateSAMLToken {
 	private Map<String, String> getSPClaims(String username, String issuer, String tenantDomain)
 			throws IdentityException, CarbonException, UserStoreException,
 			       IdentityApplicationManagementException {//exceptions are thrown in this currently
-		Map<String, String> spClaimMap;
+		Map<String, String> spClaimMap = new HashMap<String, String>();
 		org.wso2.carbon.identity.application.common.model.ClaimMapping[] claimMappings;
 		ApplicationInfoProvider appInfo = ApplicationInfoProvider.getInstance();
+		UserRealm realm;
 		try {
+		    realm = getUserRealm();
+            UserStoreManager userStore = realm.getUserStoreManager();
+            
 			ServiceProvider serviceProvider =
 					appInfo.getServiceProviderByClienId(issuer, SAMLSSO, tenantDomain);
-			String[] claims =
-					new String[serviceProvider.getClaimConfig().getClaimMappings().length];
 			claimMappings = serviceProvider.getClaimConfig().getClaimMappings();
-			for (int i = 0; i < claimMappings.length; i++) {
-				claims[i] = claimMappings[i].getRemoteClaim().getClaimUri();
-			}
-			UserRealm realm;
-			try {
-				realm = getUserRealm();
-				UserStoreManager userStore = realm.getUserStoreManager();
-				spClaimMap = userStore.getUserClaimValues(username, claims, null);
-			} catch (CarbonException e) {
-				log.error(e.getMessage(), e);
-				throw new CarbonException(e.getMessage(), e);
-			} catch (UserStoreException e) {
-				log.error(e.getMessage(), e);
-				throw new UserStoreException(e.getMessage(), e);
-			}
+			
+            for (int i = 0; i < claimMappings.length; i++) {
+
+                Claim remoteClaim = claimMappings[i].getRemoteClaim();
+                Claim localClaim = claimMappings[i].getLocalClaim();
+                
+                String claimValue = userStore.getUserClaimValue(username, claimMappings[i]
+                        .getLocalClaim().getClaimUri(), null);
+                
+//                Map to remote claims only if remote claims are present.
+                if (remoteClaim != null) {
+                    spClaimMap.put(remoteClaim.getClaimUri(), claimValue);
+                } else {
+                    spClaimMap.put(localClaim.getClaimUri(), claimValue);
+                }
+            }
+
 		} catch (IdentityApplicationManagementException e) {
 			log.error(e.getMessage(), e);
 			throw new IdentityApplicationManagementException(e.getMessage(), e);
-		}
+		} catch (CarbonException e) {
+            log.error(e.getMessage(), e);
+            throw new CarbonException(e.getMessage(), e);
+        } catch (UserStoreException e) {
+            log.error(e.getMessage(), e);
+            throw new UserStoreException(e.getMessage(), e);
+        }
 
 		return spClaimMap;
 
