@@ -82,7 +82,6 @@ import org.wso2.carbon.identity.oauth.cache.CacheEntry;
 import org.wso2.carbon.identity.oauth.cache.CacheKey;
 import org.wso2.carbon.identity.oauth.cache.OAuthCache;
 import org.wso2.carbon.identity.oauth.cache.OAuthCacheKey;
-import org.wso2.carbon.identity.oauth.config.OAuthServerConfiguration;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO.OAuth2AccessToken;
@@ -97,6 +96,7 @@ import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.api.UserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
+import org.wso2.oauthtosaml.config.TokenGenConfig;
 import org.wso2.oauthtosaml.exception.OAuthSAMLTokenGenException;
 
 public class GenerateSAMLToken {
@@ -117,7 +117,7 @@ public class GenerateSAMLToken {
 		boolean cacheHit = false;
 		String sAMLXMLResponse = null;
 		try {
-			if (OAuthServerConfiguration.getInstance().isCacheEnabled()) {//caching implementation
+			if (TokenGenConfig.getInstance().isCacheEnabled()) {//caching implementation
 				CacheEntry resultValue = isEntryInCache(token);
 				// cache hit, do the type check.
 				if (resultValue instanceof SAMLAssertion) {
@@ -144,7 +144,7 @@ public class GenerateSAMLToken {
 				Response samlResponseSample = buildSAMLResponse(issuer, user, tenantDomain);
 				sAMLXMLResponse = SAMLSSOUtil.marshall(samlResponseSample);
 
-				if (OAuthServerConfiguration.getInstance().isCacheEnabled()) {//saving for cache
+				if (TokenGenConfig.getInstance().isCacheEnabled()) {//saving for cache
 					SAMLAssertion samlAssertion = new SAMLAssertion();
 					samlAssertion.setSamlAssertion(sAMLXMLResponse);
 					saveToCache(token, samlAssertion);
