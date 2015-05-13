@@ -13,21 +13,33 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+package org.wso2.oauthtosaml.exception;
 
-package org.wso2.oauthtosaml;
+import org.wso2.oauthtosaml.ErrorCode;
 
-import org.wso2.carbon.identity.oauth.cache.CacheEntry;
+public class OAuthSAMLTokenGenException extends Exception {
 
-public class SAMLAssertion extends CacheEntry {
+    private ErrorCode errorCode;
 
     private static final long serialVersionUID = 1L;
-    String samlAssertion;
 
-	public String getSamlAssertion() {
-		return samlAssertion;
-	}
+    public OAuthSAMLTokenGenException() {
+        super();
+        errorCode = ErrorCode.NONE;
+    }
 
-	public void setSamlAssertion(String samlAssertion) {
-		this.samlAssertion = samlAssertion;
-	}
+    public OAuthSAMLTokenGenException(String message, ErrorCode code) {
+        super(message);
+        errorCode = code;
+    }
+
+    public OAuthSAMLTokenGenException(String message, Throwable cause, ErrorCode code) {
+        super(message, cause);
+        errorCode = code;
+    }
+
+    public ErrorCode getErrorCode() {
+        return errorCode;
+    }
+    
 }

@@ -16,6 +16,12 @@
 
 package org.wso2.oauthtosaml;
 
+import static org.wso2.carbon.core.util.AdminServicesUtil.getUserRealm;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.xml.security.signature.XMLSignature;
@@ -23,17 +29,50 @@ import org.joda.time.DateTime;
 import org.opensaml.Configuration;
 import org.opensaml.common.SAMLVersion;
 import org.opensaml.saml1.core.NameIdentifier;
-import org.opensaml.saml2.core.*;
-import org.opensaml.saml2.core.impl.*;
+import org.opensaml.saml2.core.Assertion;
+import org.opensaml.saml2.core.Attribute;
+import org.opensaml.saml2.core.AttributeStatement;
+import org.opensaml.saml2.core.AttributeValue;
+import org.opensaml.saml2.core.Audience;
+import org.opensaml.saml2.core.AudienceRestriction;
+import org.opensaml.saml2.core.AuthnContext;
+import org.opensaml.saml2.core.AuthnContextClassRef;
+import org.opensaml.saml2.core.AuthnStatement;
+import org.opensaml.saml2.core.Conditions;
+import org.opensaml.saml2.core.EncryptedAssertion;
+import org.opensaml.saml2.core.NameID;
+import org.opensaml.saml2.core.Response;
+import org.opensaml.saml2.core.Status;
+import org.opensaml.saml2.core.StatusCode;
+import org.opensaml.saml2.core.StatusMessage;
+import org.opensaml.saml2.core.Subject;
+import org.opensaml.saml2.core.SubjectConfirmation;
+import org.opensaml.saml2.core.SubjectConfirmationData;
+import org.opensaml.saml2.core.impl.AssertionBuilder;
+import org.opensaml.saml2.core.impl.AttributeBuilder;
+import org.opensaml.saml2.core.impl.AttributeStatementBuilder;
+import org.opensaml.saml2.core.impl.AudienceBuilder;
+import org.opensaml.saml2.core.impl.AudienceRestrictionBuilder;
+import org.opensaml.saml2.core.impl.AuthnContextBuilder;
+import org.opensaml.saml2.core.impl.AuthnContextClassRefBuilder;
+import org.opensaml.saml2.core.impl.AuthnStatementBuilder;
+import org.opensaml.saml2.core.impl.ConditionsBuilder;
+import org.opensaml.saml2.core.impl.NameIDBuilder;
+import org.opensaml.saml2.core.impl.StatusBuilder;
+import org.opensaml.saml2.core.impl.StatusCodeBuilder;
+import org.opensaml.saml2.core.impl.StatusMessageBuilder;
+import org.opensaml.saml2.core.impl.SubjectBuilder;
+import org.opensaml.saml2.core.impl.SubjectConfirmationBuilder;
+import org.opensaml.saml2.core.impl.SubjectConfirmationDataBuilder;
 import org.opensaml.xml.encryption.EncryptionConstants;
 import org.opensaml.xml.schema.XSString;
 import org.opensaml.xml.schema.impl.XSStringBuilder;
 import org.wso2.carbon.CarbonException;
-import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.context.RegistryType;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
+import org.wso2.carbon.identity.application.common.model.Claim;
 import org.wso2.carbon.identity.application.common.model.ServiceProvider;
 import org.wso2.carbon.identity.application.mgt.ApplicationInfoProvider;
 import org.wso2.carbon.identity.base.IdentityException;
@@ -43,7 +82,6 @@ import org.wso2.carbon.identity.oauth.cache.CacheEntry;
 import org.wso2.carbon.identity.oauth.cache.CacheKey;
 import org.wso2.carbon.identity.oauth.cache.OAuthCache;
 import org.wso2.carbon.identity.oauth.cache.OAuthCacheKey;
-import org.wso2.carbon.identity.oauth.config.OAuthServerConfiguration;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO;
 import org.wso2.carbon.identity.oauth2.dto.OAuth2TokenValidationRequestDTO.OAuth2AccessToken;
@@ -58,11 +96,8 @@ import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.api.UserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
-
-import java.util.Iterator;
-import java.util.Map;
-
-import static org.wso2.carbon.core.util.AdminServicesUtil.getUserRealm;
+import org.wso2.oauthtosaml.config.TokenGenConfig;
+import org.wso2.oauthtosaml.exception.OAuthSAMLTokenGenException;
 
 public class GenerateSAMLToken {
 
@@ -77,13 +112,12 @@ public class GenerateSAMLToken {
 	 * @throws AuthenticationFailedException
 	 */
 	protected String getSAMLAssertionFromOAuth(String token, String issuer)
-			throws AuthenticationFailedException, IdentityException, CarbonException,
-			       UserStoreException, IdentityApplicationManagementException {
+			throws OAuthSAMLTokenGenException {
 
 		boolean cacheHit = false;
 		String sAMLXMLResponse = null;
 		try {
-			if (OAuthServerConfiguration.getInstance().isCacheEnabled()) {//caching implementation
+			if (TokenGenConfig.getInstance().isCacheEnabled()) {//caching implementation
 				CacheEntry resultValue = isEntryInCache(token);
 				// cache hit, do the type check.
 				if (resultValue instanceof SAMLAssertion) {
@@ -96,23 +130,21 @@ public class GenerateSAMLToken {
 				OAuth2TokenValidationResponseDTO validationResponse =
 						getValidationResultForOAuth(token);
 
-				if (!validationResponse.isValid()) {//validate the OAuth token
-					log.error("RequestPath OAuth authentication failed");
-					throw new AuthenticationFailedException("Authentication Failed");
-				}
+                if (!validationResponse.isValid()) {// validate the OAuth token
+                    throw new OAuthSAMLTokenGenException("Authentication Failed. "
+                            + validationResponse.getErrorMsg(), ErrorCode.AUTHENTICATION_FAILED);
+                }
 
 				// retrieving user and tenant domain from the validation response for OAuth Token..
 				String user = validationResponse.getAuthorizedUser();
 				String tenantDomain = MultitenantUtils.getTenantDomain(user);
 
-				if (MultitenantConstants.SUPER_TENANT_DOMAIN_NAME.equals(tenantDomain)) {
-					user = MultitenantUtils.getTenantAwareUsername(user);
-				}
+                user = MultitenantUtils.getTenantAwareUsername(user);
 
 				Response samlResponseSample = buildSAMLResponse(issuer, user, tenantDomain);
 				sAMLXMLResponse = SAMLSSOUtil.marshall(samlResponseSample);
 
-				if (OAuthServerConfiguration.getInstance().isCacheEnabled()) {//saving for cache
+				if (TokenGenConfig.getInstance().isCacheEnabled()) {//saving for cache
 					SAMLAssertion samlAssertion = new SAMLAssertion();
 					samlAssertion.setSamlAssertion(sAMLXMLResponse);
 					saveToCache(token, samlAssertion);
@@ -124,17 +156,7 @@ public class GenerateSAMLToken {
 			return sAMLXMLResponse;
 
 		} catch (IdentityException e) {
-			log.error(e.getMessage(), e);
-			throw new IdentityException(e.getMessage(), e);
-		} catch (CarbonException e) {
-			log.error(e.getMessage(), e);
-			throw new CarbonException(e.getMessage(), e);
-		} catch (UserStoreException e) {
-			log.error(e.getMessage(), e);
-			throw new UserStoreException(e.getMessage(), e);
-		} catch (IdentityApplicationManagementException e) {
-			log.error(e.getMessage(), e);
-			throw new IdentityApplicationManagementException(e.getMessage(), e);
+			throw new OAuthSAMLTokenGenException(e.getMessage(), e, ErrorCode.CONFIGURATION_ERROR);
 		}
 	}
 
@@ -181,8 +203,7 @@ public class GenerateSAMLToken {
 	}
 
 	private Response buildSAMLResponse(String issuer, String userName, String tenantDoamin)
-			throws IdentityException, CarbonException, UserStoreException,
-			       IdentityApplicationManagementException {
+			throws OAuthSAMLTokenGenException {
 
 		SSOServiceProviderConfigManager spConfigManager =
 				SSOServiceProviderConfigManager.getInstance();
@@ -193,11 +214,19 @@ public class GenerateSAMLToken {
 			IdentityPersistenceManager persistenceManager;
 			try {
 				persistenceManager = IdentityPersistenceManager.getPersistanceManager();
-				Registry registry = (Registry) PrivilegedCarbonContext.getThreadLocalCarbonContext()
-				                                                      .getRegistry(
-						                                                      RegistryType.SYSTEM_CONFIGURATION);
+                Registry registry = (Registry) PrivilegedCarbonContext
+                        .getThreadLocalCarbonContext().getRegistry(
+                                RegistryType.SYSTEM_CONFIGURATION);
+                
 				assert persistenceManager != null;
 				ssoIdPConfigs = persistenceManager.getServiceProvider(registry, issuer);
+				
+                if (ssoIdPConfigs == null) {
+                    throw new OAuthSAMLTokenGenException(
+                            "Cannot find the SAML Service Provider configuration for the issuer : "
+                                    + issuer, ErrorCode.CONFIGURATION_ERROR);
+                }
+				
 				response.setIssuer(SAMLSSOUtil.getIssuer());
 				response.setID(SAMLSSOUtil.createID());
 				response.setDestination(ssoIdPConfigs.getAssertionConsumerUrl());
@@ -214,14 +243,14 @@ public class GenerateSAMLToken {
 				                               tenantDoamin);
 				if (ssoIdPConfigs.isDoEnableEncryptedAssertion()) {
 					String alias = ssoIdPConfigs.getCertAlias();
-					if (alias != null) {
-						EncryptedAssertion encryptedAssertion;
-						encryptedAssertion = SAMLSSOUtil.setEncryptedAssertion(assertion,
-						                                                       EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES256,
-						                                                       alias,
-						                                                       tenantDoamin);
-						response.getEncryptedAssertions().add(encryptedAssertion);
-					}
+                    if (alias != null) {
+                        EncryptedAssertion encryptedAssertion;
+                        encryptedAssertion = SAMLSSOUtil
+                                .setEncryptedAssertion(assertion,
+                                        EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES256, alias,
+                                        tenantDoamin);
+                        response.getEncryptedAssertions().add(encryptedAssertion);
+                    }
 				} else {
 					response.getAssertions().add(assertion);
 				}
@@ -230,121 +259,115 @@ public class GenerateSAMLToken {
 					                         new SignKeyDataHolder(userName));
 				}
 			} catch (IdentityException e) {
-				log.error(e.getMessage(), e);
-				throw new IdentityException(e.getMessage(), e);
-			} catch (CarbonException e) {
-				log.error(e.getMessage(), e);
-				throw new CarbonException(e.getMessage(), e);
-			} catch (UserStoreException e) {
-				log.error(e.getMessage(), e);
-				throw new UserStoreException(e.getMessage(), e);
-			} catch (IdentityApplicationManagementException e) {
-				log.error(e.getMessage(), e);
-				throw new IdentityApplicationManagementException(e.getMessage(), e);
-			}
+                throw new OAuthSAMLTokenGenException(e.getMessage(), e,
+                        ErrorCode.CONFIGURATION_ERROR);
+			} 
 
 		}
 		return response;
 	}
 
-	private Assertion buildSAMLAssertion(SAMLSSOServiceProviderDO ssoIdPConfigs,
-	                                     DateTime notOnOrAfter, String userName,
-	                                     String issuer, String tenantDoamin)
-			throws IdentityException, UserStoreException, CarbonException,
-			       IdentityApplicationManagementException {
-		DateTime currentTime = new DateTime();
-		Assertion samlAssertion = new AssertionBuilder().buildObject();
-		samlAssertion.setID(SAMLSSOUtil.createID());
-		samlAssertion.setVersion(SAMLVersion.VERSION_20);
-		samlAssertion.setIssuer(SAMLSSOUtil.getIssuer());
-		samlAssertion.setIssueInstant(currentTime);
-		Subject subject = new SubjectBuilder().buildObject();
-		NameID nameId = new NameIDBuilder().buildObject();
-		String claimValue = null;
+    private Assertion buildSAMLAssertion(SAMLSSOServiceProviderDO ssoIdPConfigs,
+            DateTime notOnOrAfter, String userName, String issuer, String tenantDoamin)
+            throws OAuthSAMLTokenGenException {
+        
+        DateTime currentTime = new DateTime();
+        Assertion samlAssertion = new AssertionBuilder().buildObject();
+        samlAssertion.setID(SAMLSSOUtil.createID());
+        samlAssertion.setVersion(SAMLVersion.VERSION_20);
 
-		if (ssoIdPConfigs.getNameIdClaimUri() != null) {
-			Map<String, String> claims =
-					SAMLValidatorUtil.getUserClaimValues(userName,
-					                                     new String[] {
-							                                     ssoIdPConfigs
-									                                     .getNameIdClaimUri() },
-					                                     null
-					);
-			claimValue = claims.get(ssoIdPConfigs.getNameIdClaimUri());
-			nameId.setValue(claimValue);
-		}
+        try {
+            samlAssertion.setIssuer(SAMLSSOUtil.getIssuer());
 
-		if (claimValue == null) {
-			if (ssoIdPConfigs.isUseFullyQualifiedUsername()) {
-				nameId.setValue(userName);
-			} else {
-				nameId.setValue(userName);
-			}
-		}
+            samlAssertion.setIssueInstant(currentTime);
+            Subject subject = new SubjectBuilder().buildObject();
+            NameID nameId = new NameIDBuilder().buildObject();
+            String claimValue = null;
 
-		if (ssoIdPConfigs.getNameIDFormat() != null) {
-			nameId.setFormat(ssoIdPConfigs.getNameIDFormat());
-		} else {
-			nameId.setFormat(NameIdentifier.EMAIL);
-		}
+            if (ssoIdPConfigs.getNameIdClaimUri() != null) {
+                Map<String, String> claims = SAMLValidatorUtil.getUserClaimValues(userName,
+                        new String[] { ssoIdPConfigs.getNameIdClaimUri() }, null);
+                claimValue = claims.get(ssoIdPConfigs.getNameIdClaimUri());
+                nameId.setValue(claimValue);
+            }
 
-		subject.setNameID(nameId);
+            if (claimValue == null) {
+                if (ssoIdPConfigs.isUseFullyQualifiedUsername()) {
+                    nameId.setValue(userName);
+                } else {
+                    nameId.setValue(userName);
+                }
+            }
 
-		SubjectConfirmation subjectConfirmation = new SubjectConfirmationBuilder().buildObject();
-		subjectConfirmation.setMethod(SAMLSSOConstants.SUBJECT_CONFIRM_BEARER);
+            if (ssoIdPConfigs.getNameIDFormat() != null) {
+                nameId.setFormat(ssoIdPConfigs.getNameIDFormat());
+            } else {
+                nameId.setFormat(NameIdentifier.EMAIL);
+            }
 
-		SubjectConfirmationData subjectConfirmationData =
-				new SubjectConfirmationDataBuilder().buildObject();
-		subjectConfirmationData.setRecipient(ssoIdPConfigs.getAssertionConsumerUrl());
-		subjectConfirmationData.setNotOnOrAfter(notOnOrAfter);
+            subject.setNameID(nameId);
 
-		subjectConfirmation.setSubjectConfirmationData(subjectConfirmationData);
-		subject.getSubjectConfirmations().add(subjectConfirmation);
-		samlAssertion.setSubject(subject);
+            SubjectConfirmation subjectConfirmation = new SubjectConfirmationBuilder()
+                    .buildObject();
+            subjectConfirmation.setMethod(SAMLSSOConstants.SUBJECT_CONFIRM_BEARER);
 
-		AuthnStatement authStmt = new AuthnStatementBuilder().buildObject();
-		authStmt.setAuthnInstant(new DateTime());
+            SubjectConfirmationData subjectConfirmationData = new SubjectConfirmationDataBuilder()
+                    .buildObject();
+            subjectConfirmationData.setRecipient(ssoIdPConfigs.getAssertionConsumerUrl());
+            subjectConfirmationData.setNotOnOrAfter(notOnOrAfter);
 
-		AuthnContext authContext = new AuthnContextBuilder().buildObject();
-		AuthnContextClassRef authCtxClassRef = new AuthnContextClassRefBuilder().buildObject();
-		authCtxClassRef.setAuthnContextClassRef(AuthnContext.PASSWORD_AUTHN_CTX);
-		authContext.setAuthnContextClassRef(authCtxClassRef);
-		authStmt.setAuthnContext(authContext);
-		samlAssertion.getAuthnStatements().add(authStmt);
+            subjectConfirmation.setSubjectConfirmationData(subjectConfirmationData);
+            subject.getSubjectConfirmations().add(subjectConfirmation);
+            samlAssertion.setSubject(subject);
 
-		Map<String, String> sPClaims = getSPClaims(userName, issuer, tenantDoamin);
-		if (sPClaims != null) {
-			samlAssertion.getAttributeStatements().add(buildAttributeStatement(sPClaims));
-		}
+            AuthnStatement authStmt = new AuthnStatementBuilder().buildObject();
+            authStmt.setAuthnInstant(new DateTime());
 
-		AudienceRestriction audienceRestriction = new AudienceRestrictionBuilder().buildObject();
-		Audience issuerAudience = new AudienceBuilder().buildObject();
-		issuerAudience.setAudienceURI(ssoIdPConfigs.getIssuer());
-		audienceRestriction.getAudiences().add(issuerAudience);
-		if (ssoIdPConfigs.getRequestedAudiences() != null) {
-			for (String requestedAudience : ssoIdPConfigs.getRequestedAudiences()) {
-				Audience audience = new AudienceBuilder().buildObject();
-				audience.setAudienceURI(requestedAudience);
-				audienceRestriction.getAudiences().add(audience);
-			}
-		}
+            AuthnContext authContext = new AuthnContextBuilder().buildObject();
+            AuthnContextClassRef authCtxClassRef = new AuthnContextClassRefBuilder().buildObject();
+            authCtxClassRef.setAuthnContextClassRef(AuthnContext.PASSWORD_AUTHN_CTX);
+            authContext.setAuthnContextClassRef(authCtxClassRef);
+            authStmt.setAuthnContext(authContext);
+            samlAssertion.getAuthnStatements().add(authStmt);
 
-		Conditions conditions = new ConditionsBuilder().buildObject();
-		conditions.setNotBefore(currentTime);
-		conditions.setNotOnOrAfter(notOnOrAfter);
-		conditions.getAudienceRestrictions().add(audienceRestriction);
-		samlAssertion.setConditions(conditions);
+            Map<String, String> sPClaims = getSPClaims(userName, issuer, tenantDoamin);
+            if (sPClaims != null) {
+                samlAssertion.getAttributeStatements().add(buildAttributeStatement(sPClaims));
+            }
 
-		if (ssoIdPConfigs.isDoSignAssertions()) {
-			SAMLSSOUtil.setSignature(samlAssertion, XMLSignature.ALGO_ID_SIGNATURE_RSA,
-			                         new SignKeyDataHolder(userName));
-		}
+            AudienceRestriction audienceRestriction = new AudienceRestrictionBuilder()
+                    .buildObject();
+            Audience issuerAudience = new AudienceBuilder().buildObject();
+            issuerAudience.setAudienceURI(ssoIdPConfigs.getIssuer());
+            audienceRestriction.getAudiences().add(issuerAudience);
+            if (ssoIdPConfigs.getRequestedAudiences() != null) {
+                for (String requestedAudience : ssoIdPConfigs.getRequestedAudiences()) {
+                    Audience audience = new AudienceBuilder().buildObject();
+                    audience.setAudienceURI(requestedAudience);
+                    audienceRestriction.getAudiences().add(audience);
+                }
+            }
 
-		return samlAssertion;
-	}
+            Conditions conditions = new ConditionsBuilder().buildObject();
+            conditions.setNotBefore(currentTime);
+            conditions.setNotOnOrAfter(notOnOrAfter);
+            conditions.getAudienceRestrictions().add(audienceRestriction);
+            samlAssertion.setConditions(conditions);
+
+            if (ssoIdPConfigs.isDoSignAssertions()) {
+                SAMLSSOUtil.setSignature(samlAssertion, XMLSignature.ALGO_ID_SIGNATURE_RSA,
+                        new SignKeyDataHolder(userName));
+            }
+
+        } catch (IdentityException e) {
+            throw new OAuthSAMLTokenGenException(e.getMessage(), e, ErrorCode.CONFIGURATION_ERROR);
+        }
+
+        return samlAssertion;
+    }
 
 	/**
-	 * Retreiving the service providers claims from the back-end
+	 * Retrieving the service providers claims from the back-end
 	 *
 	 * @param username username of the token
 	 * @param issuer   issuer for the SAML
@@ -355,67 +378,82 @@ public class GenerateSAMLToken {
 	 * @throws IdentityApplicationManagementException
 	 */
 	private Map<String, String> getSPClaims(String username, String issuer, String tenantDomain)
-			throws IdentityException, CarbonException, UserStoreException,
-			       IdentityApplicationManagementException {//exceptions are thrown in this currently
-		Map<String, String> spClaimMap;
+			throws OAuthSAMLTokenGenException {//exceptions are thrown in this currently
+		Map<String, String> spClaimMap = new HashMap<String, String>();
 		org.wso2.carbon.identity.application.common.model.ClaimMapping[] claimMappings;
 		ApplicationInfoProvider appInfo = ApplicationInfoProvider.getInstance();
+		UserRealm realm;
 		try {
+		    realm = getUserRealm();
+            UserStoreManager userStore = realm.getUserStoreManager();
+            
 			ServiceProvider serviceProvider =
 					appInfo.getServiceProviderByClienId(issuer, SAMLSSO, tenantDomain);
-			String[] claims =
-					new String[serviceProvider.getClaimConfig().getClaimMappings().length];
 			claimMappings = serviceProvider.getClaimConfig().getClaimMappings();
-			for (int i = 0; i < claimMappings.length; i++) {
-				claims[i] = claimMappings[i].getRemoteClaim().getClaimUri();
-			}
-			UserRealm realm;
-			try {
-				realm = getUserRealm();
-				UserStoreManager userStore = realm.getUserStoreManager();
-				spClaimMap = userStore.getUserClaimValues(username, claims, null);
-			} catch (CarbonException e) {
-				log.error(e.getMessage(), e);
-				throw new CarbonException(e.getMessage(), e);
-			} catch (UserStoreException e) {
-				log.error(e.getMessage(), e);
-				throw new UserStoreException(e.getMessage(), e);
-			}
+			
+            for (int i = 0; i < claimMappings.length; i++) {
+
+                Claim remoteClaim = claimMappings[i].getRemoteClaim();
+                Claim localClaim = claimMappings[i].getLocalClaim();
+                
+                String claimValue = userStore.getUserClaimValue(username, claimMappings[i]
+                        .getLocalClaim().getClaimUri(), null);
+                
+//                Map to remote claims only if remote claims are present.
+                if (remoteClaim != null) {
+                    spClaimMap.put(remoteClaim.getClaimUri(), claimValue);
+                } else {
+                    spClaimMap.put(localClaim.getClaimUri(), claimValue);
+                }
+            }
+
 		} catch (IdentityApplicationManagementException e) {
-			log.error(e.getMessage(), e);
-			throw new IdentityApplicationManagementException(e.getMessage(), e);
-		}
+			throw new OAuthSAMLTokenGenException(e.getMessage(), e, ErrorCode.CONFIGURATION_ERROR);
+		} catch (CarbonException e) {
+            throw new OAuthSAMLTokenGenException(e.getMessage(), e, ErrorCode.CONFIGURATION_ERROR);
+        } catch (UserStoreException e) {
+            throw new OAuthSAMLTokenGenException(e.getMessage(), e, ErrorCode.CONFIGURATION_ERROR);
+        }
 
 		return spClaimMap;
 
 	}
 
-	private AttributeStatement buildAttributeStatement(Map<String, String> claims) {
-		AttributeStatement attStmt = null;
-		if (claims != null) {
-			attStmt = new AttributeStatementBuilder().buildObject();
-			Iterator<String> ite = claims.keySet().iterator();
+    private AttributeStatement buildAttributeStatement(Map<String, String> claims)
+            throws OAuthSAMLTokenGenException {
+        AttributeStatement attStmt = null;
+        if (claims != null) {
+            attStmt = new AttributeStatementBuilder().buildObject();
+            Iterator<String> ite = claims.keySet().iterator();
 
-			for (int i = 0; i < claims.size(); i++) {
-				Attribute attrib = new AttributeBuilder().buildObject();
-				String claimUri = ite.next();
-				attrib.setName(claimUri);
-				//setting NAMEFORMAT attribute value to basic attribute profile
-				attrib.setNameFormat(SAMLSSOConstants.NAME_FORMAT_BASIC);
-				// look
-				// https://wiki.shibboleth.net/confluence/display/OpenSAML/OSTwoUsrManJavaAnyTypes
-				XSStringBuilder stringBuilder = (XSStringBuilder) Configuration.getBuilderFactory()
-				                                                               .getBuilder(
-						                                                               XSString.TYPE_NAME);
-				XSString stringValue = stringBuilder.buildObject(
-						AttributeValue.DEFAULT_ELEMENT_NAME, XSString.TYPE_NAME);
-				stringValue.setValue(claims.get(claimUri));
-				attrib.getAttributeValues().add(stringValue);
-				attStmt.getAttributes().add(attrib);
-			}
-		}
-		return attStmt;
-	}
+            for (int i = 0; i < claims.size(); i++) {
+                Attribute attrib = new AttributeBuilder().buildObject();
+                String claimUri = ite.next();
+                attrib.setName(claimUri);
+                // setting NAMEFORMAT attribute value to basic attribute profile
+                attrib.setNameFormat(SAMLSSOConstants.NAME_FORMAT_BASIC);
+
+                // Try to bootstrap the OpenSAML.
+                SAMLSSOUtil.doBootstrap();
+                // look
+                // https://wiki.shibboleth.net/confluence/display/OpenSAML/OSTwoUsrManJavaAnyTypes
+                XSStringBuilder stringBuilder = (XSStringBuilder) Configuration.getBuilderFactory()
+                        .getBuilder(XSString.TYPE_NAME);
+                if (stringBuilder == null) {
+                    throw new OAuthSAMLTokenGenException(
+                            "Could not obtain the OpenSAML Configuration.",
+                            ErrorCode.CONFIGURATION_ERROR);
+                }
+
+                XSString stringValue = stringBuilder.buildObject(
+                        AttributeValue.DEFAULT_ELEMENT_NAME, XSString.TYPE_NAME);
+                stringValue.setValue(claims.get(claimUri));
+                attrib.getAttributeValues().add(stringValue);
+                attStmt.getAttributes().add(attrib);
+            }
+        }
+        return attStmt;
+    }
 
 	/**
 	 * Get status

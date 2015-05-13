@@ -16,7 +16,9 @@ hs_err_pid*
 */.idea/*
 target/
 org.wso2.oauth.saml.iml
-
+.classpath
+.project
+.settings
 
 
 # exclude sample zips from ignored files

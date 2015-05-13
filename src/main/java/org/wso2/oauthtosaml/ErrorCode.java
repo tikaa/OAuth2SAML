@@ -13,21 +13,12 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-
 package org.wso2.oauthtosaml;
 
-import org.wso2.carbon.identity.oauth.cache.CacheEntry;
+public enum ErrorCode {
 
-public class SAMLAssertion extends CacheEntry {
-
-    private static final long serialVersionUID = 1L;
-    String samlAssertion;
-
-	public String getSamlAssertion() {
-		return samlAssertion;
-	}
-
-	public void setSamlAssertion(String samlAssertion) {
-		this.samlAssertion = samlAssertion;
-	}
+    AUTHENTICATION_FAILED,
+    EXPIRED_TOKEN,
+    CONFIGURATION_ERROR,
+    NONE;
 }
