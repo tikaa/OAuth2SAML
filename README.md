@@ -31,7 +31,9 @@ curl -vk -X POST https://localhost:9443/oauth2saml/token -d 'token=${OAuthToken}
 for plain xml SAML
 curl -vk -X POST https://localhost:9443/oauth2saml/token -d 'token=${OAuthToken}&issuer=${Issuer}'
 
-
+Configuration
+--------------
+Please put the configuration file oauth-saml-token-config.properties under <IS_HOME>/repository/conf/security to enable token caching.
 
 LICENSE 
 -------
