@@ -16,16 +16,18 @@
 
 package org.wso2.oauthtosaml;
 
-import org.wso2.carbon.CarbonException;
-import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
-import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
-import org.wso2.carbon.identity.base.IdentityException;
-import org.wso2.carbon.identity.sso.saml.util.SAMLSSOUtil;
-import org.wso2.carbon.user.api.UserStoreException;
-
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.identity.sso.saml.util.SAMLSSOUtil;
+import org.wso2.oauthtosaml.exception.OAuthSAMLTokenGenException;
 
 @Path("/")
 public class SAMLFromAOuthToken {
@@ -34,6 +36,9 @@ public class SAMLFromAOuthToken {
 	public static final String ISSUER = "issuer";
 	public static final String BASE64 = "base64";
 	public static final String ENCODING = "encoding";
+	
+    private static Log log = LogFactory.getLog(SAMLFromAOuthToken.class);
+
 
 	@POST
 	@Path("/token")
@@ -50,53 +55,58 @@ public class SAMLFromAOuthToken {
 			try {
 				sAMLOutputString = generateSaml.getSAMLAssertionFromOAuth(token, issuer);
 				return Response.status(200).entity(sAMLOutputString).build();
-			} catch (AuthenticationFailedException e) {
-				return Response.status(401)
-				               .entity("Authentication failed for the given oauth token" + "\n" +
-				                       e + "\n").build();
-			} catch (CarbonException e) {
-				return Response.status(500)
-				               .entity("Carbon Server Error has occurred, please refer carbon logs for more details" +
-				                       "\n" + e + "\n").build();
-			} catch (IdentityException e) {
-				return Response.status(500)
-				               .entity("Identity Server Error has occurred, please refer carbon logs for more details" +
-				                       "\n" + e + "\n").build();
-			} catch (UserStoreException e) {
-				return Response.status(500)
-				               .entity("UserStore Error has occurred, please refer carbon logs for more details" +
-				                       "\n" + e + "\n").build();
-			} catch (IdentityApplicationManagementException e) {
-				return Response.status(500)
-				               .entity("Identity Server Error has occurred, please refer carbon logs for more details" +
-				                       "\n" + e + "\n").build();
-			}
+
+            } catch (OAuthSAMLTokenGenException e) {
+                log.error("Error occurred while serving the request for issuer : " + issuer, e);
+
+                switch (e.getErrorCode()) {
+
+                case AUTHENTICATION_FAILED:
+                    return Response
+                            .status(401)
+                            .entity("Authentication failed for the given oauth token" + "\n" + e
+                                    + "\n").build();
+
+                case CONFIGURATION_ERROR:
+                    return Response
+                            .status(500)
+                            .entity("Error in the configuration. please refer carbon logs for more details"
+                                    + "\n" + e + "\n").build();
+                default:
+                    return Response
+                            .status(500)
+                            .entity("Identity Server Error has occurred, please refer carbon logs for more details"
+                                    + "\n" + e + "\n").build();
+                }
+            }
 		} else if (acceptEncoding.equals(BASE64)) {
 			try {
 				sAMLOutputString =
 						SAMLSSOUtil.encode(generateSaml.getSAMLAssertionFromOAuth(token, issuer));
 				return Response.status(200).entity(sAMLOutputString).build();
-			} catch (AuthenticationFailedException e) {
-				return Response.status(401)
-				               .entity("Authentication failed for the given oauth token" + "\n" +
-				                       e + "\n").build();
-			} catch (CarbonException e) {
-				return Response.status(500)
-				               .entity("Carbon Server Error has occurred, please refer carbon logs for more details" +
-				                       "\n" + e + "\n").build();
-			} catch (IdentityException e) {
-				return Response.status(500)
-				               .entity("Identity Server Error has occurred, please refer carbon logs for more details" +
-				                       "\n" + e + "\n").build();
-			} catch (UserStoreException e) {
-				return Response.status(500)
-				               .entity("UserStore Error has occurred, please refer carbon logs for more details" +
-				                       "\n" + e + "\n").build();
-			} catch (IdentityApplicationManagementException e) {
-				return Response.status(500)
-				               .entity("Identity Server Error has occurred, please refer carbon logs for more details" +
-				                       "\n" + e + "\n").build();
-			}
+            } catch (OAuthSAMLTokenGenException e) {
+                log.error("Error occurred while serving the request for issuer : " + issuer, e);
+
+                switch (e.getErrorCode()) {
+
+                case AUTHENTICATION_FAILED:
+                    return Response
+                            .status(401)
+                            .entity("Authentication failed for the given oauth token" + "\n" + e
+                                    + "\n").build();
+
+                case CONFIGURATION_ERROR:
+                    return Response
+                            .status(500)
+                            .entity("Error in the configuration. please refer carbon logs for more details"
+                                    + "\n" + e + "\n").build();
+                default:
+                    return Response
+                            .status(500)
+                            .entity("Identity Server Error has occurred, please refer carbon logs for more details"
+                                    + "\n" + e + "\n").build();
+                }
+            }
 		} else {
 			return Response.status(406)
 			               .entity("The Encoding type you requested is currently not supported" +

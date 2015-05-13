@@ -20,7 +20,8 @@ import org.wso2.carbon.identity.oauth.cache.CacheEntry;
 
 public class SAMLAssertion extends CacheEntry {
 
-	String samlAssertion;
+    private static final long serialVersionUID = 1L;
+    String samlAssertion;
 
 	public String getSamlAssertion() {
 		return samlAssertion;
