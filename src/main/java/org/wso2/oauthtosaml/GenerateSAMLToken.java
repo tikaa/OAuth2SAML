@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.xml.security.algorithms.MessageDigestAlgorithm;
 import org.apache.xml.security.signature.XMLSignature;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
@@ -74,12 +75,11 @@ import org.wso2.carbon.identity.application.authentication.framework.exception.A
 import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
 import org.wso2.carbon.identity.application.common.model.Claim;
 import org.wso2.carbon.identity.application.common.model.ServiceProvider;
-import org.wso2.carbon.identity.application.mgt.ApplicationInfoProvider;
+import org.wso2.carbon.identity.application.mgt.ApplicationManagementServiceImpl;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.core.model.SAMLSSOServiceProviderDO;
 import org.wso2.carbon.identity.core.persistence.IdentityPersistenceManager;
 import org.wso2.carbon.identity.oauth.cache.CacheEntry;
-import org.wso2.carbon.identity.oauth.cache.CacheKey;
 import org.wso2.carbon.identity.oauth.cache.OAuthCache;
 import org.wso2.carbon.identity.oauth.cache.OAuthCacheKey;
 import org.wso2.carbon.identity.oauth2.OAuth2TokenValidationService;
@@ -185,7 +185,7 @@ public class GenerateSAMLToken {
 	 */
 	private void saveToCache(String tokenKey, SAMLAssertion samlAssertion) {
 		OAuthCache oauthCache = OAuthCache.getInstance();
-		CacheKey cacheKey = new OAuthCacheKey(tokenKey);
+		OAuthCacheKey cacheKey = new OAuthCacheKey(tokenKey);
 		oauthCache.addToCache(cacheKey, samlAssertion);
 	}
 
@@ -197,7 +197,7 @@ public class GenerateSAMLToken {
 	 */
 	private CacheEntry isEntryInCache(String tokenKey) {
 		OAuthCache oauthCache = OAuthCache.getInstance();
-		CacheKey cacheKey = new OAuthCacheKey(tokenKey);
+		OAuthCacheKey cacheKey = new OAuthCacheKey(tokenKey);
 		return oauthCache.getValueFromCache(cacheKey);
 
 	}
@@ -255,8 +255,7 @@ public class GenerateSAMLToken {
 					response.getAssertions().add(assertion);
 				}
 				if (ssoIdPConfigs.isDoSignResponse()) {
-					SAMLSSOUtil.setSignature(response, XMLSignature.ALGO_ID_SIGNATURE_RSA,
-					                         new SignKeyDataHolder(userName));
+					SAMLSSOUtil.setSignature(response, XMLSignature.ALGO_ID_SIGNATURE_RSA, MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA1, new SignKeyDataHolder(userName));
 				}
 			} catch (IdentityException e) {
                 throw new OAuthSAMLTokenGenException(e.getMessage(), e,
@@ -292,11 +291,7 @@ public class GenerateSAMLToken {
             }
 
             if (claimValue == null) {
-                if (ssoIdPConfigs.isUseFullyQualifiedUsername()) {
-                    nameId.setValue(userName);
-                } else {
-                    nameId.setValue(userName);
-                }
+                nameId.setValue(userName);
             }
 
             if (ssoIdPConfigs.getNameIDFormat() != null) {
@@ -356,8 +351,7 @@ public class GenerateSAMLToken {
             samlAssertion.setConditions(conditions);
 
             if (ssoIdPConfigs.isDoSignAssertions()) {
-                SAMLSSOUtil.setSignature(samlAssertion, XMLSignature.ALGO_ID_SIGNATURE_RSA,
-                        new SignKeyDataHolder(userName));
+            	SAMLSSOUtil.setSignature(samlAssertion, XMLSignature.ALGO_ID_SIGNATURE_RSA, MessageDigestAlgorithm.ALGO_ID_DIGEST_SHA1, new SignKeyDataHolder(userName));
             }
 
         } catch (IdentityException e) {
@@ -382,14 +376,14 @@ public class GenerateSAMLToken {
 			throws OAuthSAMLTokenGenException {//exceptions are thrown in this currently
 		Map<String, String> spClaimMap = new HashMap<String, String>();
 		org.wso2.carbon.identity.application.common.model.ClaimMapping[] claimMappings;
-		ApplicationInfoProvider appInfo = ApplicationInfoProvider.getInstance();
+		ApplicationManagementServiceImpl appInfo = ApplicationManagementServiceImpl.getInstance();
 		UserRealm realm;
 		try {
 		    realm = getUserRealm();
             UserStoreManager userStore = realm.getUserStoreManager();
             
 			ServiceProvider serviceProvider =
-					appInfo.getServiceProviderByClienId(issuer, SAMLSSO, tenantDomain);
+					appInfo.getServiceProviderByClientId(issuer, SAMLSSO, tenantDomain);
 			claimMappings = serviceProvider.getClaimConfig().getClaimMappings();
 			
             for (int i = 0; i < claimMappings.length; i++) {
