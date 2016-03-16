@@ -331,6 +331,7 @@ public class GenerateSAMLToken {
             samlAssertion.getAuthnStatements().add(authStmt);
 
             Map<String, String> sPClaims = getSPClaims(userName, issuer, tenantDoamin);
+            //Map<String, String> sPClaims = new HashMap<String,String>();
             if (sPClaims != null) {
                 samlAssertion.getAttributeStatements().add(buildAttributeStatement(sPClaims));
             }

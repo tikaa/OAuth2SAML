@@ -31,6 +31,76 @@
     <description>SAML tokens for OAuth 2.0</description>
     <url>http://wso2.org</url>
 
+    <repositories>
+    <repository>
+      <id>wso2-nexus</id>
+      <name>WSO2 Public Repository</name>
+      <url>http://maven.wso2.org/nexus/content/groups/wso2-public/</url>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>daily</updatePolicy>
+        <checksumPolicy>ignore</checksumPolicy>
+      </releases>
+    </repository>
+    <repository>
+      <id>wso2.releases</id>
+      <name>WSO2 Internal Repository</name>
+      <url>http://maven.wso2.org/nexus/content/repositories/releases/</url>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>daily</updatePolicy>
+        <checksumPolicy>ignore</checksumPolicy>
+      </releases>
+    </repository>
+    <repository>
+      <id>wso2.snapshots</id>
+      <name>WSO2 Snapshot Repository</name>
+      <url>http://maven.wso2.org/nexus/content/repositories/snapshots/</url>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>daily</updatePolicy>
+      </snapshots>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>wso2-nexus</id>
+      <name>WSO2 Public Repository</name>
+      <url>http://maven.wso2.org/nexus/content/groups/wso2-public/</url>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>daily</updatePolicy>
+        <checksumPolicy>ignore</checksumPolicy>
+      </releases>
+    </pluginRepository>
+    <pluginRepository>
+      <id>wso2.releases</id>
+      <name>WSO2 Internal Repository</name>
+      <url>http://maven.wso2.org/nexus/content/repositories/releases/</url>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>daily</updatePolicy>
+        <checksumPolicy>ignore</checksumPolicy>
+      </releases>
+    </pluginRepository>
+    <pluginRepository>
+      <id>wso2.snapshots</id>
+      <name>WSO2 Snapshot Repository</name>
+      <url>http://maven.wso2.org/nexus/content/repositories/snapshots/</url>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>daily</updatePolicy>
+      </snapshots>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+    </pluginRepository>
+  </pluginRepositories>
+        
     <dependencies>
         <dependency>
             <groupId>org.apache.axis2.wso2</groupId>
@@ -41,45 +111,53 @@
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.ui</artifactId>
-            <version>4.2.0</version>
+            <!-- version>4.2.0</version-->
+            <version>4.4.3</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.core</artifactId>
-            <version>4.2.0</version>
+            <!--  version>4.2.0</version-->
+            <version>4.4.3</version>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.utils</artifactId>
-            <version>4.2.0</version>
+            <!--  version>4.2.0</version-->
+            <version>4.4.3</version>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.identity.base</artifactId>
-            <version>4.2.0</version>
+            <!--  version>4.2.0</version-->
+            <version>5.0.7</version>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.identity.core</artifactId>
-            <version>4.2.3</version>
+            <!--  version>4.2.3</version-->
+            <version>5.0.7</version>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.registry.core</artifactId>
-            <version>4.2.0</version>
+            <!--  version>4.2.0</version-->
+            <version>4.4.3</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.logging</artifactId>
-            <version>4.2.0</version>
+            <version>4.4.3</version>
+            <!--  version>4.2.0</version-->
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.identity.provider</artifactId>
-            <version>4.2.1</version>
+            <!--  version>4.2.1</version-->
+            <version>5.0.7</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -91,13 +169,16 @@
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.identity.oauth</artifactId>
-            <version>4.2.4</version>
+            <version>5.0.7</version>
+            <!--  version>4.2.4</version-->
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.identity.authenticator.saml2.sso.common</artifactId>
-            <version>4.2.0</version>
+            <version>5.0.7</version>
+            <scope>provided</scope>
+            <!--  version>4.2.0</version-->
         </dependency>
         <dependency>
             <groupId>org.apache.amber.wso2</groupId>
@@ -116,22 +197,28 @@
             <artifactId>cors-filter</artifactId>
             <version>1.7.0.wso2v1</version>
         </dependency>
+        
+         
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.identity.application.authentication.framework</artifactId>
-            <version>4.2.3</version>
+            <version>5.0.7</version>
+            <scope>provided</scope>
+        </dependency>
+      
+        <dependency>
+            <groupId>org.wso2.carbon</groupId>
+            <artifactId>org.wso2.carbon.identity.tools.saml.validator</artifactId>
+            <version>5.0.7</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon</groupId>
-            <artifactId>org.wso2.carbon.identity.tools.saml.validator</artifactId>
-            <version>4.2.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.identity.sso.saml</artifactId>
-            <version>4.2.3</version>
+            <version>5.0.7</version>
+            <scope>provided</scope>
         </dependency>
+         
     </dependencies>
 
     <build>
@@ -146,7 +233,6 @@
                 <configuration>
                     <webResources>
                         <resource>
-                            <!-- this is relative to the pom.xml directory -->
                             <directory>src/main/webapp</directory>
                         </resource>
                     </webResources>
@@ -156,9 +242,8 @@
             </plugin>
         </plugins>
     </build>
-
-
-    <repositories>
+ 
+    <!--  repositories>
         <repository>
             <id>wso2-nexus</id>
             <name>WSO2 internal Repository</name>
@@ -169,6 +254,17 @@
                 <checksumPolicy>ignore</checksumPolicy>
             </releases>
         </repository>
-    </repositories>
+        <repository>
+		<id>wso2-maven2-repository</id>
+		<url>http://dist.wso2.org/maven2</url>
+	</repository>
+	<repository>
+		<id>apache-maven2-repo</id>
+		<name>Apache Maven2 Repository</name>
+		<url>http://repo.maven.apache.org/maven2</url>
+	</repository>
+        
+    </repositories-->
 
+     
 </project>
